@@ -2,6 +2,10 @@ from functools import wraps
 
 from address_book import AddressBook, Record
 
+# Обробники помилок, де і що
+# The same check if record is None: return f"Contact {name} not found."
+# Check if upcoming birthdays works correctly"
+
 
 def parse_input(user_input: str) -> tuple[str, list[str]]:
     cmd, *args = user_input.split()
@@ -14,25 +18,24 @@ def input_error(func):
     def inner(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except KeyError:
-            return "This contact does not exist."
-        except ValueError as errorMessage:
-            return errorMessage or "Give me name and phone please."
-        except IndexError:
-            return "Enter the name."
+        except ValueError as e:
+            return str(e)
 
     return inner
 
 
 @input_error
-def add_contact(args, contacts: AddressBook):
+def add_contact(args, contacts: AddressBook) -> str:
+    if len(args) < 2:
+        raise ValueError("Enter the name and phone please.")
+
     name, phone, *_ = args
     record = contacts.find(name)
-    message = "Contact updated."
+    message = f"Contact {name} updated."
     if record is None:
         record = Record(name)
         contacts.add_record(record)
-        message = "Contact added."
+        message = f"Contact {name} added."
     if phone:
         record.add_phone(phone)
     return message
@@ -40,25 +43,35 @@ def add_contact(args, contacts: AddressBook):
 
 @input_error
 def change_contact(args: list[str], contacts: AddressBook) -> str:
-    name, phone = args
-    if name in contacts:
-        contacts[name] = phone
-        return "Contact updated."
-    else:
-        raise KeyError
+    if len(args) < 3:
+        raise ValueError("Enter the name, old phone and new phone please.")
+
+    name, phone_old, phone_new, *_ = args
+    record = contacts.find(name)
+    if record is None:
+        return f"Contact {name} not found."
+
+    record.edit_phone(phone_old, phone_new)
+    return f"Contact {name} updated."
 
 
 @input_error
 def show_phone(args: list[str], contacts: AddressBook) -> str:
+    if len(args) < 1:
+        raise ValueError("Enter the name please.")
+
     name = args[0]
-    return contacts[name]
+    record = contacts.find(name)
+    if record is None:
+        return f"Contact {name} not found."
+    return record.show_all_phones()
 
 
 @input_error
 def show_all(contacts: AddressBook) -> str:
     if not contacts:
         return "No contacts found"
-    return "\n".join(f"{contact}: {phone}" for contact, phone in contacts.items())
+    return contacts
 
 
 @input_error
@@ -66,13 +79,29 @@ def show_upcoming_birthdays(contacts: AddressBook) -> str:
     return contacts.get_upcoming_birthdays()
 
 
+@input_error
 def add_birthday(args: list[str], contacts: AddressBook) -> str:
-    name, birthday = args
+    if len(args) < 2:
+        raise ValueError("Enter the name and birthday please.")
+
+    name, birthday, *_ = args
     record = contacts.find(name)
     if record is None:
-        return "Contact not found."
+        return f"Contact {name} not found."
     record.add_birthday(birthday)
     return "Birthday added."
+
+
+@input_error
+def show_birthday(args: list[str], contacts: AddressBook) -> str:
+    if len(args) < 1:
+        raise ValueError("Enter the name please.")
+
+    name = args[0]
+    record = contacts.find(name)
+    if record is None:
+        return f"Contact {name} not found."
+    return record.birthday
 
 
 def main() -> None:
@@ -94,7 +123,9 @@ def main() -> None:
         elif command == "phone":
             print(show_phone(args, contacts))
         elif command == "add-birthday":
-            print(show_all(contacts))
+            print(add_birthday(args, contacts))
+        elif command == "show-birthday":
+            print(show_birthday(args, contacts))
         elif command == "birthdays":
             print(show_upcoming_birthdays(contacts))
         elif command == "all":

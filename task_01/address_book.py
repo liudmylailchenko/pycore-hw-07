@@ -1,6 +1,7 @@
 from collections import UserDict
 from re import fullmatch
 from datetime import datetime, timedelta
+from typing import Optional
 
 
 class Field:
@@ -28,6 +29,9 @@ class Phone(Field):
     def validate_phone(phone: str) -> bool:
         return fullmatch(r"\d{10}", phone) is not None
 
+    def __str__(self):
+        return f"{self.value[:3]}-{self.value[3:6]}-{self.value[6:]}"
+
 
 class Birthday(Field):
     def __init__(self, value: str):
@@ -36,12 +40,15 @@ class Birthday(Field):
         except ValueError:
             raise ValueError("Invalid date format. Use DD.MM.YYYY")
 
+    def __str__(self):
+        return self.value.strftime("%d.%m.%Y")
+
 
 class Record:
     def __init__(self, name: str):
         self.name = Name(name)
-        self.phones = []
-        self.birthday = None
+        self.phones: list[Phone] = []
+        self.birthday: Birthday = None
 
     def add_phone(self, phone: str):
         phone_obj = Phone(phone)
@@ -55,31 +62,32 @@ class Record:
             if phone.value == old_phone:
                 phone.value = new_phone
                 break
-        else:
-            raise ValueError(f"Phone {old_phone} not found")
+            else:
+                raise ValueError(f"Phone {old_phone} not found")
 
-    def find_phone(self, phone):
+    def find_phone(self, phone: str) -> Optional[Phone]:
         for p in self.phones:
             if p.value == phone:
                 return p
-        return "Phone not found"
+        return None
+
+    def show_all_phones(self):
+        return "; ".join(p.value for p in self.phones) if self.phones else "No phones"
 
     def add_birthday(self, birthday):
         self.birthday = Birthday(birthday)
 
     def __str__(self):
-        phones_str = (
-            "; ".join(p.value for p in self.phones) if self.phones else "No phones"
-        )
-        return f"Contact name: {self.name.value}, phones: {phones_str}"
+        phones_str = self.show_all_phones()
+        return f"Contact name: {self.name.value} | phones: {phones_str} | birthday: {self.birthday}"
 
 
 class AddressBook(UserDict):
-    def add_record(self, record):
+    def add_record(self, record: Record):
         self.data[record.name.value] = record
 
-    def find(self, name):
-        return self.data.get(name)
+    def find(self, name: str) -> Optional[Record]:
+        return self.data.get(name, None)
 
     def delete(self, name):
         if name in self.data:
@@ -91,9 +99,10 @@ class AddressBook(UserDict):
         today = datetime.today().date()
         next_week = today + timedelta(days=7)
         upcoming_birthdays = []
-        print(self.data)
+
         for user in self.data.values():
-            birthday = datetime.strptime(user["birthday"], "%Y.%m.%d").date()
+            print("USER>>>>>>>>>>>>", user)
+            birthday = datetime.strptime(user.birthday, "%Y.%m.%d").date()
             birthday_this_year = birthday.replace(year=today.year)
 
             today = datetime.strptime("2024.12.30", "%Y.%m.%d").date()
@@ -117,3 +126,6 @@ class AddressBook(UserDict):
                 )
 
         return upcoming_birthdays
+
+    def __str__(self):
+        return "\n".join(str(record) for record in self.data.values())
