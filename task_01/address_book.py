@@ -100,30 +100,30 @@ class AddressBook(UserDict):
         next_week = today + timedelta(days=7)
         upcoming_birthdays = []
 
-        for user in self.data.values():
-            print("USER>>>>>>>>>>>>", user)
-            birthday = datetime.strptime(user.birthday, "%Y.%m.%d").date()
-            birthday_this_year = birthday.replace(year=today.year)
+        for record in self.data.values():
+            if record.birthday:
+                birthday = record.birthday.value.date()
+                birthday_this_year = birthday.replace(year=today.year)
 
-            today = datetime.strptime("2024.12.30", "%Y.%m.%d").date()
+                if birthday_this_year < today:
+                    birthday_this_year = birthday_this_year.replace(year=today.year + 1)
 
-            if birthday_this_year < today:
-                birthday_this_year = birthday_this_year.replace(year=today.year + 1)
+                if today <= birthday_this_year <= next_week:
+                    if birthday_this_year.weekday() >= 5:
+                        congratulation_date = birthday_this_year + timedelta(
+                            days=(7 - birthday_this_year.weekday())
+                        )
+                    else:
+                        congratulation_date = birthday_this_year
 
-            if today <= birthday_this_year <= next_week:
-                if birthday_this_year.weekday() >= 5:
-                    congratulation_date = birthday_this_year + timedelta(
-                        days=(7 - birthday_this_year.weekday())
+                    upcoming_birthdays.append(
+                        {
+                            "name": record.name.value,
+                            "congratulation_date": congratulation_date.strftime(
+                                "%Y.%m.%d"
+                            ),
+                        }
                     )
-                else:
-                    congratulation_date = birthday_this_year
-
-                upcoming_birthdays.append(
-                    {
-                        "name": user["name"],
-                        "congratulation_date": congratulation_date.strftime("%Y.%m.%d"),
-                    }
-                )
 
         return upcoming_birthdays
 

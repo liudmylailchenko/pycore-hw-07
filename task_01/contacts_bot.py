@@ -1,10 +1,5 @@
 from functools import wraps
-
 from address_book import AddressBook, Record
-
-# Обробники помилок, де і що
-# The same check if record is None: return f"Contact {name} not found."
-# Check if upcoming birthdays works correctly"
 
 
 def parse_input(user_input: str) -> tuple[str, list[str]]:
